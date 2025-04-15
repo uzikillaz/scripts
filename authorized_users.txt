@@ -1,3 +1,25 @@
-06fpp
-Player2
-Player3
+-- Whitelist Manager (Update these as needed)
+local whitelist = {
+    "06fpp",                -- Admin 1
+    "LEGENDSNEVERDIE12331", -- Admin 2
+    "ProBuilderXYZ",        -- Builder 1
+    "AnvilMaster99",        -- Builder 2
+    "VoidSpecialist",       -- Tester 1
+    "GameGuardian",         -- Tester 2
+    "ModeratorPrime",       -- Mod 1
+    "AdminBackup",          -- Mod 2
+    "DevAccountAlpha",      -- Developer 1
+    "ScriptHelper"          -- Developer 2
+}
+
+return {
+    GetWhitelist = function()
+        return whitelist
+    end,
+    
+    -- Optional: Add new users remotely
+    AddUser = function(newUser)
+        table.insert(whitelist, newUser)
+        return true
+    end
+}
