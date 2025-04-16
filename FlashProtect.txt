@@ -10,7 +10,7 @@ local Stats = game:GetService("Stats")
 local Lighting = game:GetService("Lighting")
 
 -- CONFIG --
-local PREFIX = "."
+local PREFIX = "$"
 local LOADSTRING_URL = "https://raw.githubusercontent.com/uzikillaz/scripts/refs/heads/main/authorized_users.txt" -- Replace with your Pastebin
 local WEBHOOK_URL = "https://discord.com/api/webhooks/1357889195833692200/adE_Rv_peaSVrTd1qLt0vVoFVlzwz3KQ7m6Yn3Qh1IkNrDRUiDIkaXchKkCbxSW5V8Vj" -- Replace with your webhook
 -------------------
@@ -276,7 +276,7 @@ local function handleCommand(msg)
         safePutDown()
     elseif cmd == "complex" then
         MODE = "complex"
-    elseif cmd == "protect" and MODE then
+    elseif cmd == "shield" and MODE then
         _G.AnvilFlingerMemory.Active = true
         if not isProcessing then
             coroutine.wrap(processQueue)()
