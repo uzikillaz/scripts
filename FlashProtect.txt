@@ -294,4 +294,4 @@ Players.LocalPlayer.CharacterAdded:Connect(function()
     if _G.AnvilFlingerMemory.Active then
         coroutine.wrap(processQueue)()
     end
-end)urn n;end;end;end end end end),...)
+end)
