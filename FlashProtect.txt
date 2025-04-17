@@ -152,6 +152,24 @@ _G.AnvilFlingerMemory = _G.AnvilFlingerMemory or {
     LastSuccessTime = 0
 }
 
+-- Added lag pattern cycling system
+local LAG_PATTERNS = {
+    Vector3.new(1e308, -1e308, 1e308),  -- Maximum double precision
+    Vector3.new(math.huge, -math.huge, math.huge),  -- Infinity
+    Vector3.new(9e18, -9e18, 9e18),     -- Large but not infinite
+    Vector3.new(1/0, -1/0, 1/0)         -- Alternative infinity
+}
+local currentLagIndex = 1
+local lastLagSwitch = 0
+
+local function getNextLagVector()
+    if tick() - lastLagSwitch > 0.05 then
+        currentLagIndex = currentLagIndex % #LAG_PATTERNS + 1
+        lastLagSwitch = tick()
+    end
+    return LAG_PATTERNS[currentLagIndex]
+end
+
 local function updateAnvilCache()
     local newCache = {}
     
@@ -222,19 +240,20 @@ local function smartFling(target)
         safePutDown()
     end
     
+    local lagVector = getNextLagVector()
     local success = pcall(function()
         if char:FindFirstChild("Picked") and not char.Picked.Value then
             if char:FindFirstChild("Picking") then
-                char.Picking:FireServer(target, Vector3.new(-math.huge, -math.huge, -math.huge))
+                char.Picking:FireServer(target, lagVector)
             end
         end
         
         if char:FindFirstChild("Picking") then
-            char.Picking:FireServer(target, Vector3.new(-math.huge, -math.huge, -math.huge))
+            char.Picking:FireServer(target, lagVector)
         end
         
         if char:FindFirstChild("ArmAngleChange") then
-            char.ArmAngleChange:FireServer(CFrame.new(-math.huge, -math.huge, -math.huge))
+            char.ArmAngleChange:FireServer(CFrame.new(lagVector.X, lagVector.Y, lagVector.Z))
         end
     end)
     
