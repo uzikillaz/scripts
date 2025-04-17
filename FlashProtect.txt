@@ -225,16 +225,16 @@ local function smartFling(target)
     local success = pcall(function()
         if char:FindFirstChild("Picked") and not char.Picked.Value then
             if char:FindFirstChild("Picking") then
-                char.Picking:FireServer(target, Vector3.new(-9e37, -9e37, -9e37))
+                char.Picking:FireServer(target, Vector3.new(-math.huge, -math.huge, -math.huge))
             end
         end
         
         if char:FindFirstChild("Picking") then
-            char.Picking:FireServer(target, Vector3.new(-9e37, -9e37, -9e37))
+            char.Picking:FireServer(target, Vector3.new(-math.huge, -math.huge, -math.huge))
         end
         
         if char:FindFirstChild("ArmAngleChange") then
-            char.ArmAngleChange:FireServer(CFrame.new(-9e37, -9e37, -9e37))
+            char.ArmAngleChange:FireServer(CFrame.new(-math.huge, -math.huge, -math.huge))
         end
     end)
     
