@@ -5,7 +5,7 @@ local whitelist = {
     "ak47_antiban",        -- Builder 1
     "ENKA56M",        -- Builder 2
     "EyadRamyEmad22",       -- Tester 1
-    "GameGuardian",         -- Tester 2
+    "Gigi_Alt83737",         -- Tester 2
     "ModeratorPrime",       -- Mod 1
     "AdminBackup",          -- Mod 2
     "DevAccountAlpha",      -- Developer 1
