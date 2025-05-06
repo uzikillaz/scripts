@@ -1,7 +1,7 @@
 -- Whitelist Manager (Update these as needed)
 local whitelist = {
     "06fpp",                -- Admin 1
-    "EyadAlt5718", -- Admin 2
+    "EyadAlt571", -- Admin 2
     "ak47_antiban",        -- Builder 1
     "ENKA56M",        -- Builder 2
     "EyadRamyEmad22",       -- Tester 1
