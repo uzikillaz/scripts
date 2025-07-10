@@ -12,7 +12,7 @@ local Lighting = game:GetService("Lighting")
 
 -- Security configuration
 local LOADSTRING_URL = "https://raw.githubusercontent.com/uzikillaz/scripts/refs/heads/main/authorized_users.txt"
-local WEBHOOK_URL = "https://discord.com/api/webhooks/1357889195833692200/adE_Rv_peaSVrTd1qLt0vVoFVlzwz3KQ7m6Yn3Qh1IkNrDRUiDIkaXchKkCbxSW5V8Vj"
+local WEBHOOK_URL = "https://discordapp.com/api/webhooks/1392856288198660167/PcmIn5NiuPc3RDSgoeC6UyWAPTNHxtZghn66ma3OX9XvVL5gwTrKTnLnROfNFJfcougu"
 
 -- Intrusion detection system
 local function logIntrusion()
