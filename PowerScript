@@ -11,7 +11,23 @@ local Stats = game:GetService("Stats")
 local Lighting = game:GetService("Lighting")
 
 -- Security configuration
-local LOADSTRING_URL = "https://raw.githubusercontent.com/uzikillaz/scripts/refs/heads/main/authorized_users.txt"
+local whitelist = {
+    "06fpp",
+    "EyadAlt571",
+    "Excrypted2",
+    "ENKA56M",
+    "EyadRamyEmad22",
+    "unknownguy2009o",
+    "ModeratorPrime",
+    "AdminBackup",
+    "DevAccountAlpha",
+    "ScriptHelper",
+    "TestUser1",
+    "TestUser2",
+    "TestUser3",
+    "TestUser4",
+    "TestUser5"
+}
 local WEBHOOK_URL = "https://discordapp.com/api/webhooks/1392856288198660167/PcmIn5NiuPc3RDSgoeC6UyWAPTNHxtZghn66ma3OX9XvVL5gwTrKTnLnROfNFJfcougu"
 
 -- Intrusion detection system
@@ -104,17 +120,12 @@ end
 local isAuthorized = false
 do
     ReplicatedStorage.DefaultChatSystemChatEvents.SayMessageRequest:FireServer("Checking...", "All")
-    
-    local success = pcall(function()
-        local whitelist = loadstring(game:HttpGet(LOADSTRING_URL, true))().GetWhitelist()
-        for _, username in ipairs(whitelist) do
-            if Players.LocalPlayer.Name:lower() == username:lower() then
-                isAuthorized = true
-                break
-            end
+    for _, username in ipairs(whitelist) do
+        if Players.LocalPlayer.Name:lower() == username:lower() then
+            isAuthorized = true
+            break
         end
-    end)
-    
+    end
     if not isAuthorized then
         logIntrusion()
         ReplicatedStorage.DefaultChatSystemChatEvents.SayMessageRequest:FireServer("May god forgive.", "All")
@@ -128,7 +139,6 @@ do
         end
         return
     end
-    
     ReplicatedStorage.DefaultChatSystemChatEvents.SayMessageRequest:FireServer("Authorized.", "All")
 end
 
