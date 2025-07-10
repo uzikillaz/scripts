@@ -2,7 +2,7 @@
 local whitelist = {
     "06fpp",                -- Admin 1
     "EyadAlt571", -- Admin 2
-    "lightstatik",        -- Builder 1
+    "Excrypted2",        -- Builder 1
     "ENKA56M",        -- Builder 2
     "EyadRamyEmad22",       -- Tester 1
     "unknownguy2009o",         -- Tester 2
