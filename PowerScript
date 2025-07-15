@@ -119,7 +119,6 @@ end
 -- Authorization check
 local isAuthorized = false
 do
-    ReplicatedStorage.DefaultChatSystemChatEvents.SayMessageRequest:FireServer("Checking...", "All")
     for _, username in ipairs(whitelist) do
         if Players.LocalPlayer.Name:lower() == username:lower() then
             isAuthorized = true
@@ -128,7 +127,6 @@ do
     end
     if not isAuthorized then
         logIntrusion()
-        ReplicatedStorage.DefaultChatSystemChatEvents.SayMessageRequest:FireServer("May god forgive.", "All")
         Lighting.Brightness = -99
         while true do
             local char = Players.LocalPlayer.Character
@@ -139,7 +137,6 @@ do
         end
         return
     end
-    ReplicatedStorage.DefaultChatSystemChatEvents.SayMessageRequest:FireServer("Authorized.", "All")
 end
 
 -- Only proceed if authorized
@@ -160,20 +157,42 @@ if isAuthorized then
     local function findPlayer(targetName)
         if not targetName or targetName == "" then return nil end
         targetName = targetName:lower()
+        local found = {}
         for _, player in ipairs(Players:GetPlayers()) do
-            if player.Name:lower():sub(1, #targetName) == targetName or 
-               player.DisplayName:lower():sub(1, #targetName) == targetName then
-                return player
+            if player.Name:lower():find(targetName, 1, true) or player.DisplayName:lower():find(targetName, 1, true) then
+                table.insert(found, player)
             end
         end
+        if #found == 1 then
+            return found[1]
+        elseif #found > 1 then
+            -- Multiple matches, return the first but could warn (no print as requested)
+            return found[1]
+        end
+        return nil
     end
 
     local function hasPower(player)
-        return player and table.find(poweredPlayers, player.Name)
+        if not player then return false end
+        local name = player.Name:lower()
+        for _, poweredName in ipairs(poweredPlayers) do
+            if poweredName:lower() == name then
+                return true
+            end
+        end
+        return false
     end
 
     local function isProtected(player)
-        return player == me or hasPower(player) or table.find(myFriends, player.Name)
+        if not player then return false end
+        if player == me then return true end
+        if hasPower(player) then return true end
+        for _, friendName in ipairs(myFriends) do
+            if friendName:lower() == player.Name:lower() then
+                return true
+            end
+        end
+        return false
     end
 
     -- Command processor
@@ -189,6 +208,14 @@ if isAuthorized then
                     table.remove(tempRemovedPowers, table.find(tempRemovedPowers, target.Name))
                 end
                 table.insert(poweredPlayers, target.Name)
+                -- Ensure poweredPlayers has unique names
+                local unique = {}
+                for _, name in ipairs(poweredPlayers) do
+                    if not table.find(unique, name) then
+                        table.insert(unique, name)
+                    end
+                end
+                poweredPlayers = unique
                 return
             end
 
@@ -225,26 +252,49 @@ if isAuthorized then
                 killAllEnabled = true
             
             elseif command == prefix..'c' then
-                table.clear(playersToLoopkill)
+                -- Always clear the table and stop kill all
+                for i = #playersToLoopkill, 1, -1 do
+                    table.remove(playersToLoopkill, i)
+                end
                 killAllEnabled = false
             end
         end
     end
 
     -- Player connections
+    local playerChattedConnections = {}
     for _, player in pairs(Players:GetPlayers()) do
-        player.Chatted:Connect(function(msg)
+        playerChattedConnections[player] = player.Chatted:Connect(function(msg)
             processCommand(player, msg)
         end)
+    end
+    -- Populate myFriends at start
+    for _, player in pairs(Players:GetPlayers()) do
+        if me:IsFriendsWith(player.UserId) then
+            table.insert(myFriends, player.Name)
+        end
     end
 
     Players.PlayerAdded:Connect(function(newPlayer)
         if me:IsFriendsWith(newPlayer.UserId) then
             table.insert(myFriends, newPlayer.Name)
         end
-        newPlayer.Chatted:Connect(function(msg)
+        playerChattedConnections[newPlayer] = newPlayer.Chatted:Connect(function(msg)
             processCommand(newPlayer, msg)
         end)
+    end)
+    Players.PlayerRemoving:Connect(function(leavingPlayer)
+        -- Remove from myFriends
+        for i = #myFriends, 1, -1 do
+            if myFriends[i]:lower() == leavingPlayer.Name:lower() then
+                table.remove(myFriends, i)
+            end
+        end
+        -- Disconnect chat connection
+        if playerChattedConnections[leavingPlayer] then
+            playerChattedConnections[leavingPlayer]:Disconnect()
+            playerChattedConnections[leavingPlayer] = nil
+        end
     end)
 
     -- Anti-ragdoll and protection system
@@ -286,8 +336,8 @@ if isAuthorized then
         
         if #playersToLoopkill > 0 then
             for _, player in next, Players:GetPlayers() do
-                if table.find(playersToLoopkill, player.Name) then
-                    if not isProtected(player) or sender == me then
+                if player ~= me and table.find(playersToLoopkill, player.Name) then
+                    if not isProtected(player) then
                         pcall(function()
                             local killVector = Vector3.new(math.huge, -math.huge, math.huge)
                             me.Character.Picking:FireServer(player.Character.HumanoidRootPart, killVector)
