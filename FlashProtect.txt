@@ -19,7 +19,7 @@ local whitelist = {
     "EyadRamyEmad22",
     "unknownguy2009o",
     "Idoeepeo",
-    "AdminBackup",
+    "shazamx1337",
     "DevAccountAlpha",
     "ScriptHelper",
     "TestUser1",
